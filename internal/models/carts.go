@@ -34,6 +34,7 @@ type AddToCartRequest struct {
 type UserRequest struct {
 	TeacherID string `json:"teacher_id"`
 	StudentID string `json:"student_id"`
+	Email     string `json:"email"`
 }
 
 type UpdateCartItemRequest struct {

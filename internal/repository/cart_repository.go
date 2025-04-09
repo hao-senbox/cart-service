@@ -97,7 +97,7 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 		{{
 			Key: "$group", Value: bson.D{
 				{Key: "_id", Value: "$student_id"},
-				{Key: "items", Value: bson.M{"$push": "$items"}},
+				{Key: "items", Value: bson.M{"$first": "$items"}},
 				{Key: "total_price", Value: bson.M{"$sum": "$total_price"}},
 			},
 		}},

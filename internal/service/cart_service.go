@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"fmt"
+	// "math/rand"
+	"net/http"
 	"store/internal/models"
 	"store/internal/repository"
 	"store/pkg/consul"
-
+	// "time"
 	"github.com/hashicorp/consul/api"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +22,7 @@ type CartService interface {
 	UpdateQuantityItem(ctx context.Context, productID string, req *models.UpdateCartItemRequest) error
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID string) error
 	ClearCart(ctx context.Context, teacherID string) error
-	CheckOutCart(ctx context.Context, userID string) error
+	CheckOutCart(ctx context.Context, userID string, email string) error
 }
 
 type cartService struct {
@@ -205,8 +206,8 @@ func (s *cartService) ClearCart(ctx context.Context, teacherID string) error {
 	return s.repoCart.ClearCart(ctx, teacherID)
 }
 
-func (s *cartService) CheckOutCart(ctx context.Context, userID string) error {
-	response, err := s.orderAPI.CreateOrderByUserID(userID)
+func (s *cartService) CheckOutCart(ctx context.Context, userID string, email string) error {
+	response, err := s.orderAPI.CreateOrderByUserID(userID, email)
 	if err != nil {
 		return fmt.Errorf("failed to create order: %v", err)
 	}
@@ -270,10 +271,11 @@ func (c *callAPI) GetProductByID(productID string) map[string]interface{} {
 	return myMap
 }
 
-func (c *callAPI) CreateOrderByUserID(userID string) (interface{}, error) {
+func (c *callAPI) CreateOrderByUserID(userID string, email string) (interface{}, error) {
 	// Tạo dữ liệu body cho request POST
 	requestBody := map[string]string{
 		"teacher_id": userID,
+		"email": email,
 	}
 
 	// Chuyển đổi dữ liệu thành JSON

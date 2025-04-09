@@ -22,12 +22,12 @@ func RegisterHandlers(r *gin.Engine, cartService service.CartService) {
 
 	handlers := NewCartHandlers(cartService)
 
-	adminCartGroup := r.Group("/api/admin/cart")
+	adminCartGroup := r.Group("/api/v1/admin/cart")
 	{
 		adminCartGroup.GET("", handlers.GetAllCartGroupedByTeacher)
 	}
 
-	cartGroup := r.Group("/api/cart")
+	cartGroup := r.Group("/api/v1/cart")
 	{
 		cartGroup.GET("/items/:teacher_id", handlers.GetCart)
 		cartGroup.POST("/items", handlers.AddToCart)
@@ -201,7 +201,7 @@ func (h *CartHandlers) CheckOutCart(c *gin.Context) {
 		return 
 	}
 
-	err := h.cartService.CheckOutCart(c.Request.Context(), req.TeacherID)
+	err := h.cartService.CheckOutCart(c.Request.Context(), req.TeacherID, req.Email)
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
