@@ -17,7 +17,7 @@ import (
 const (
 	serviceName = "cart-service"
 	ttl         = time.Second * 15
-	checkId     = "health-check"
+	checkId     = "cart-service-health-check"
 )
 
 var (
