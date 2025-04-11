@@ -201,7 +201,7 @@ func (h *CartHandlers) CheckOutCart(c *gin.Context) {
 		return 
 	}
 
-	err := h.cartService.CheckOutCart(c.Request.Context(), req.TeacherID, req.Email)
+	err := h.cartService.CheckOutCart(c.Request.Context(), req.TeacherID, req.Types, req.Email)
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)

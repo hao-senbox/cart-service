@@ -23,23 +23,3 @@ type Cart struct {
 	CreateAt   time.Time          `bson:"create_at" json:"create_at"`
 	UpdateAt   time.Time          `bson:"update_at" json:"update_at"`
 }
-
-type AddToCartRequest struct {
-	ProductID string `json:"product_id"`
-	TeacherID string `json:"teacher_id"`
-	StudentID string `json:"student_id"`
-	Quantity  int    `json:"quantity"`
-}
-
-type UserRequest struct {
-	TeacherID string `json:"teacher_id"`
-	StudentID string `json:"student_id"`
-	Email     string `json:"email"`
-}
-
-type UpdateCartItemRequest struct {
-	Quantity  int    `json:"quantity"`
-	Type      string `json:"types"`
-	TeacherID string `json:"teacher_id"`
-	StudentID string `json:"student_id"`
-}

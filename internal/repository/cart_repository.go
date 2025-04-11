@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"math"
 	"store/internal/models"
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -359,6 +361,6 @@ func (r *cartRepository) UpdateCartTotalPrice(ctx context.Context, cart *models.
 	for _, item := range cart.Items {
 		totalPrice += item.Price * float64(item.Quantity)
 	}
-	cart.TotalPrice = totalPrice
+	cart.TotalPrice = math.Round(totalPrice*100) / 100
 	return r.UpdateCart(ctx, cart)
 }
