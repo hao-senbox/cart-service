@@ -163,7 +163,6 @@ func (s *cartService) UpdateQuantityItem(ctx context.Context, productID string, 
 		ImageURL:    imageURL,
 	}
 
-
 	if err != nil {
 		return fmt.Errorf("invalid product ID format: %w", err)
 	}
