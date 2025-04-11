@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/api"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math/rand"
 	"net/http"
 	"store/internal/models"
 	"store/internal/repository"
 	"store/pkg/consul"
 	"time"
-	"github.com/hashicorp/consul/api"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CartService interface {
@@ -58,7 +58,7 @@ func (s *cartService) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson.M,
 	return s.repoCart.GetAllCartGroupedByTeacher(ctx)
 }
 
-func (s *cartService) GetCartByTeacher(ctx context.Context, teacherID string) ([]bson.M, error){
+func (s *cartService) GetCartByTeacher(ctx context.Context, teacherID string) ([]bson.M, error) {
 	return s.repoCart.GetCartByTeacher(ctx, teacherID)
 }
 
@@ -68,67 +68,51 @@ func (s *cartService) AddToCart(ctx context.Context, req *models.AddToCartReques
 		return nil, fmt.Errorf("invalid product ID format: %v", err)
 	}
 
-	productRes := s.productAPI.GetProductByID(req.ProductID)
+	// productRes := s.productAPI.GetProductByID(req.ProductID)
 
-	if productRes == nil {
-		return nil, fmt.Errorf("product not found")
+	// if productRes == nil {
+	// 	return nil, fmt.Errorf("product not found")
+	// }
+
+	// product := productRes["data"].(map[string]interface{})
+
+	// name := product["product_name"].(string)
+	// price := product["original_price"].(float64)
+	// imageURL := product["cover_image"].(string)
+	// topic := product["topic_name"].(string)
+
+	sampleProducts := []struct {
+		Name     string
+		Price    float64
+		ImageURL string
+	}{
+		{"Laptop", 999.99, "https://example.com/images/laptop.jpg"},
+		{"Keyboard", 999.99, "https://example.com/images/keyboard.jpg"},
 	}
+	now := time.Now()
+	// Tạo seed cho random
+	rand.Seed(now.UnixNano())
 
-	product := productRes["data"].(map[string]interface{})
-
-	name := product["product_name"].(string)
-	price := product["original_price"].(float64)
-	imageURL := product["cover_image"].(string)
-
-	// sampleProducts := []struct {
-	// 	Name     string
-	// 	Price    float64
-	// 	ImageURL string
-	// }{
-	// 	{"Laptop", 1200, "https://example.com/images/laptop.jpg"},
-	// 	{"Keyboard", 45, "https://example.com/images/keyboard.jpg"},
-	// 	{"Mouse", 25, "https://example.com/images/mouse.jpg"},
-	// 	{"Monitor", 300, "https://example.com/images/monitor.jpg"},
-	// 	{"Tablet", 650, "https://example.com/images/tablet.jpg"},
-	// 	{"Smartphone", 900, "https://example.com/images/smartphone.jpg"},
-	// 	{"Printer", 150, "https://example.com/images/printer.jpg"},
-	// 	{"Webcam", 70, "https://example.com/images/webcam.jpg"},
-	// 	{"Desk Lamp", 40, "https://example.com/images/lamps.jpg"},
-	// 	{"Speaker", 80, "https://example.com/images/speaker.jpg"},
-	// 	{"External HDD", 110, "https://example.com/images/hdd.jpg"},
-	// 	{"SSD", 130, "https://example.com/images/ssd.jpg"},
-	// 	{"USB Cable", 10, "https://example.com/images/usb.jpg"},
-	// 	{"Headphones", 60, "https://example.com/images/headphones.jpg"},
-	// 	{"Microphone", 90, "https://example.com/images/microphone.jpg"},
-	// 	{"Router", 85, "https://example.com/images/router.jpg"},
-	// 	{"Chair", 150, "https://example.com/images/chair.jpg"},
-	// 	{"Desk", 300, "https://example.com/images/desk.jpg"},
-	// 	{"Graphics Card", 500, "https://example.com/images/gpu.jpg"},
-	// 	{"Power Bank", 40, "https://example.com/images/powerbank.jpg"},
-	// }
-	// now := time.Now()
-	// // Tạo seed cho random
-	// rand.Seed(now.UnixNano())
-
-	// // Lấy ngẫu nhiên 1 sản phẩm
-	// randomIndex := rand.Intn(len(sampleProducts))
-	// selected := sampleProducts[randomIndex]
-
-	// cartItem := &models.CartItem{
-	// 	ProductID:   productID,
-	// 	Quantity:    req.Quantity,
-	// 	ProductName: selected.Name,
-	// 	Price:       selected.Price,
-	// 	ImageURL:    selected.ImageURL,
-	// }
+	// Lấy ngẫu nhiên 1 sản phẩm
+	randomIndex := rand.Intn(len(sampleProducts))
+	selected := sampleProducts[randomIndex]
 
 	cartItem := &models.CartItem{
 		ProductID:   productID,
 		Quantity:    req.Quantity,
-		ProductName: name,
-		Price:       float64(price),
-		ImageURL:    imageURL,
+		ProductName: selected.Name,
+		Price:       selected.Price,
+		ImageURL:    selected.ImageURL,
 	}
+
+	// cartItem := &models.CartItem{
+	// 	ProductID:   productID,
+	// 	Quantity:    req.Quantity,
+	// 	ProductName: name,
+	// 	TopicName: topic,
+	// 	Price:       float64(price),
+	// 	ImageURL:    imageURL,
+	// }
 
 	if err = s.repoCart.AddItemToCart(ctx, req.TeacherID, req.StudentID, *cartItem); err != nil {
 		return nil, err
@@ -156,11 +140,34 @@ func (s *cartService) UpdateQuantityItem(ctx context.Context, productID string, 
 
 	id, err := primitive.ObjectIDFromHex(productID)
 
+	productRes := s.productAPI.GetProductByID(productID)
+
+	if productRes == nil {
+		return fmt.Errorf("product not found")
+	}
+
+	product := productRes["data"].(map[string]interface{})
+
+	name := product["product_name"].(string)
+	price := product["original_price"].(float64)
+	imageURL := product["cover_image"].(string)
+	topic := product["topic_name"].(string)
+
+	cartItem := &models.CartItem{
+		ProductID:   id,
+		Quantity:    1,
+		ProductName: name,
+		TopicName:   topic,
+		Price:       float64(price),
+		ImageURL:    imageURL,
+	}
+
+
 	if err != nil {
 		return fmt.Errorf("invalid product ID format: %w", err)
 	}
 
-	return s.repoCart.UpdateCartItemQuantity(ctx, req.TeacherID, req.StudentID, id, req.Quantity, req.Type)
+	return s.repoCart.UpdateCartItemQuantity(ctx, req.TeacherID, req.StudentID, id, req.Quantity, req.Type, *cartItem)
 }
 
 func (s *cartService) RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID string) error {
@@ -220,7 +227,6 @@ func (s *cartService) CheckOutCart(ctx context.Context, userID string, types str
 		return fmt.Errorf("type cannot be empty")
 	}
 
-
 	// Có thể log để debug
 	fmt.Printf("Response from API: %+v\n", response)
 
@@ -234,8 +240,8 @@ func (s *cartService) CheckOutCart(ctx context.Context, userID string, types str
 	}
 
 	// if err := s.ClearCart(ctx, userID); err != nil {
-    //     return fmt.Errorf("order created, but failed to clear cart: %v", err)
-    // }
+	//     return fmt.Errorf("order created, but failed to clear cart: %v", err)
+	// }
 
 	return nil
 }
@@ -284,8 +290,8 @@ func (c *callAPI) CreateOrderByUserID(userID string, types string, email string)
 	// Tạo dữ liệu body cho request POST
 	requestBody := map[string]string{
 		"teacher_id": userID,
-		"email": email,
-		"types": types,
+		"email":      email,
+		"types":      types,
 	}
 
 	// Chuyển đổi dữ liệu thành JSON

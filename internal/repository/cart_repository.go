@@ -18,7 +18,7 @@ type CartRepository interface {
 	GetCartByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
 	UpdateCart(ctx context.Context, cart *models.Cart) error
 	AddItemToCart(ctx context.Context, teacherID string, studentID string, item models.CartItem) error
-	UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string) error
+	UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string, item models.CartItem) error
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID) error
 	ClearCart(ctx context.Context, teacherID string) error 
 }
@@ -100,10 +100,22 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 			Key: "$group", Value: bson.D{
 				{Key: "_id", Value: "$student_id"},
 				{Key: "items", Value: bson.M{"$first": "$items"}},
-				{Key: "total_price", Value: bson.M{"$sum": "$total_price"}},
+				{Key: "total_price", Value: bson.M{
+					"$sum": "$total_price",
+				}},
+			},
+		}},
+		{{
+			Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 1},
+				{Key: "items", Value: 1},
+				{Key: "total_price", Value: bson.M{
+					"$round": bson.A{"$total_price", 2},
+				}},
 			},
 		}},
 	}
+	
 	
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
@@ -168,15 +180,15 @@ func (r *cartRepository) AddItemToCart(ctx context.Context, teacherID string, st
 	return r.UpdateCartTotalPrice(ctx, cart)
 }
 
-func (r *cartRepository) UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string) error {
+func (r *cartRepository) UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string, item models.CartItem) error {
 	if types == "increase" {
-		return r.IncreaseCartItemQuantity(ctx, teacherID, studentID, productID)
+		return r.IncreaseCartItemQuantity(ctx, teacherID, studentID, productID, item)
 	} else {
 		return r.DecreaseCartItemQuantity(ctx, teacherID, studentID, productID)
 	}
 }
 
-func (r *cartRepository) IncreaseCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID) error {
+func (r *cartRepository) IncreaseCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, item models.CartItem) error {
 	cart, err := r.GetCartByTeacherStudent(ctx, teacherID, studentID)
 	if err != nil {
 		return err
@@ -204,8 +216,23 @@ func (r *cartRepository) IncreaseCartItemQuantity(ctx context.Context, teacherID
 	}
 
 	if !found {
-		return fmt.Errorf("product not found")
+		cart.Items = append(cart.Items, item)
+
+		history := models.CartHistory{
+			TeacherID: teacherID,
+			StudentID: studentID,
+			ProductID: productID,
+			EventType: "add",
+			Quantity: 1,
+			OcccuredOn: time.Now(),
+		}
+
+		_, err = r.collectionHistory.InsertOne(ctx, history)
+		if err != nil {
+			return err
+		}
 	}
+
 	return r.UpdateCartTotalPrice(ctx, cart)
 }
 

@@ -9,6 +9,7 @@ import (
 type CartItem struct {
 	ProductID   primitive.ObjectID `bson:"product_id" json:"product_id"`
 	ProductName string             `bson:"product_name" json:"product_name"`
+	TopicName   string             `bson:"topic_name" json:"topic_name"`
 	Price       float64            `bson:"price" json:"price"`
 	Quantity    int                `bson:"quantity" json:"quantity"`
 	ImageURL    string             `bson:"image_url" json:"image_url"`
