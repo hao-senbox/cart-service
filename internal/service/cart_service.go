@@ -151,13 +151,14 @@ func (s *cartService) UpdateQuantityItem(ctx context.Context, productID string, 
 	name := product["product_name"].(string)
 	price := product["original_price"].(float64)
 	imageURL := product["cover_image"].(string)
-	topic := product["topic_name"].(string)
+	topic := product["topic"].(map[string]interface{})
+	topicName := topic["topic_name"].(string)
 
 	cartItem := &models.CartItem{
 		ProductID:   id,
 		Quantity:    1,
 		ProductName: name,
-		TopicName:   topic,
+		TopicName:   topicName,
 		Price:       float64(price),
 		ImageURL:    imageURL,
 	}
