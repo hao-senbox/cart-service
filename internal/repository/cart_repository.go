@@ -103,20 +103,21 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 				{Key: "total_price", Value: bson.M{
 					"$sum": "$total_price",
 				}},
+				{Key: "create_at", Value: bson.M{"$first": "$create_at"}},
 			},
 		}},
 		{{
 			Key: "$project", Value: bson.D{
 				{Key: "_id", Value: 1},
 				{Key: "items", Value: 1},
+				{Key: "create_at", Value: 1},  // Include create_at field here
 				{Key: "total_price", Value: bson.M{
 					"$round": bson.A{"$total_price", 2},
 				}},
 			},
 		}},
+		{{Key: "$sort", Value: bson.D{{Key: "create_at", Value: -1}}}},
 	}
-	
-	
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
 	if err != nil {
