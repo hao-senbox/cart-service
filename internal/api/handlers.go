@@ -194,14 +194,14 @@ func (h *CartHandlers) ClearCart(c *gin.Context) {
 
 func (h *CartHandlers) CheckOutCart(c *gin.Context) {
 	
-	var req models.UserRequest
+	var req models.CheckOutCartRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		SendError(c, http.StatusBadRequest, err, models.ErrInvalidRequest)
 		return 
 	}
 
-	err := h.cartService.CheckOutCart(c.Request.Context(), req.TeacherID, req.Types, req.Email)
+	err := h.cartService.CheckOutCart(c.Request.Context(), &req)
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)

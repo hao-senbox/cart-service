@@ -10,8 +10,18 @@ type AddToCartRequest struct {
 type UserRequest struct {
 	TeacherID string `json:"teacher_id" validate:"required"`
 	StudentID string `json:"student_id" validate:"required"`
-	Email     string `json:"email" validate:"required,email"`
-	Types string `json:"types" validate:"required,oneof=cod bank_transfer"`
+}
+
+type CheckOutCartRequest struct {
+	TeacherID string  `json:"teacher_id" validate:"required"`
+	StudentID string  `json:"student_id" validate:"required"`
+	Email     string  `json:"email" validate:"required,email"`
+	Types     string  `json:"types" validate:"required,oneof=cod bank_transfer"`
+	Street    string  `json:"street" validate:"required"`
+	City      string  `json:"city" validate:"required"`
+	State     *string `json:"state"`
+	Country   string  `json:"country" validate:"required"`
+	Phone     string  `json:"phone" validate:"required"`
 }
 
 type UpdateCartItemRequest struct {
