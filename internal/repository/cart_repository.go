@@ -20,7 +20,7 @@ type CartRepository interface {
 	AddItemToCart(ctx context.Context, teacherID string, studentID string, item models.CartItem) error
 	UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string, item models.CartItem) error
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID) error
-	ClearCart(ctx context.Context, teacherID string) error 
+	ClearCart(ctx context.Context, teacherID string) error
 }
 
 type cartRepository struct {
@@ -40,7 +40,7 @@ func (r *cartRepository) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson
 	pipeline := mongo.Pipeline{
 		{
 			{Key: "$group", Value: bson.D{
-				{Key: "_id", Value: "$teacher_id"},            // Nhóm theo teacher_id
+				{Key: "_id", Value: "$teacher_id"},                             // Nhóm theo teacher_id
 				{Key: "carts", Value: bson.D{{Key: "$push", Value: "$$ROOT"}}}, // Đẩy toàn bộ cart vào mảng `carts`
 			}},
 		},
@@ -72,8 +72,8 @@ func (r *cartRepository) GetCartByTeacherStudent(ctx context.Context, teacherID 
 		if err == mongo.ErrNoDocuments {
 			newCart := &models.Cart{
 				ID:         primitive.NewObjectID(),
-				TeacherID:     teacherID,
-				StudentID:    studentID,
+				TeacherID:  teacherID,
+				StudentID:  studentID,
 				Items:      []models.CartItem{},
 				TotalPrice: 0,
 				CreateAt:   time.Now(),
@@ -93,7 +93,7 @@ func (r *cartRepository) GetCartByTeacherStudent(ctx context.Context, teacherID 
 }
 
 func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string) ([]bson.M, error) {
-	
+
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{"teacher_id": teacherID}}},
 		{{
@@ -110,7 +110,7 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 			Key: "$project", Value: bson.D{
 				{Key: "_id", Value: 1},
 				{Key: "items", Value: 1},
-				{Key: "create_at", Value: 1},  // Include create_at field here
+				{Key: "create_at", Value: 1}, // Include create_at field here
 				{Key: "total_price", Value: bson.M{
 					"$round": bson.A{"$total_price", 2},
 				}},
@@ -200,12 +200,12 @@ func (r *cartRepository) IncreaseCartItemQuantity(ctx context.Context, teacherID
 			found = true
 			cart.Items[i].Quantity += 1
 
-			history := models.CartHistory {
-				TeacherID: teacherID,
-				StudentID: studentID,
-				ProductID: productID,
-				EventType: "add",
-				Quantity: 1,
+			history := models.CartHistory{
+				TeacherID:  teacherID,
+				StudentID:  studentID,
+				ProductID:  productID,
+				EventType:  "add",
+				Quantity:   1,
 				OcccuredOn: time.Now(),
 			}
 
@@ -220,11 +220,11 @@ func (r *cartRepository) IncreaseCartItemQuantity(ctx context.Context, teacherID
 		cart.Items = append(cart.Items, item)
 
 		history := models.CartHistory{
-			TeacherID: teacherID,
-			StudentID: studentID,
-			ProductID: productID,
-			EventType: "add",
-			Quantity: 1,
+			TeacherID:  teacherID,
+			StudentID:  studentID,
+			ProductID:  productID,
+			EventType:  "add",
+			Quantity:   1,
 			OcccuredOn: time.Now(),
 		}
 
@@ -249,15 +249,15 @@ func (r *cartRepository) DecreaseCartItemQuantity(ctx context.Context, teacherID
 			if item.Quantity > 1 {
 				cart.Items[i].Quantity -= 1
 
-				history := models.CartHistory {
-					TeacherID: teacherID,
-					StudentID: studentID,
-					ProductID: productID,
-					EventType: "remove",
-					Quantity: 1,
+				history := models.CartHistory{
+					TeacherID:  teacherID,
+					StudentID:  studentID,
+					ProductID:  productID,
+					EventType:  "remove",
+					Quantity:   1,
 					OcccuredOn: time.Now(),
 				}
-	
+
 				_, err := r.collectionHistory.InsertOne(ctx, history)
 				if err != nil {
 					return err
@@ -299,7 +299,6 @@ func (r *cartRepository) DecreaseCartItemQuantity(ctx context.Context, teacherID
 		}
 	}
 
-	
 	if !found {
 		return fmt.Errorf("product not found")
 	}
@@ -367,7 +366,7 @@ func (r *cartRepository) ClearCart(ctx context.Context, teacherID string) error 
 		return err
 	}
 	defer cursor.Close(ctx)
-	
+
 	for cursor.Next(ctx) {
 		if err := cursor.Decode(&cart); err != nil {
 			return err

@@ -229,6 +229,7 @@ func (s *cartService) ClearCart(ctx context.Context, teacherID string) error {
 	if err != nil {
 		return fmt.Errorf("unable to add all cart history: %w", err)
 	}
+	
 	return s.repoCart.ClearCart(ctx, teacherID)
 }
 
@@ -275,9 +276,9 @@ func (s *cartService) CheckOutCart(ctx context.Context, req *models.CheckOutCart
 		}
 	}
 
-	// if err := s.ClearCart(ctx, userID); err != nil {
-	//     return fmt.Errorf("order created, but failed to clear cart: %v", err)
-	// }
+	if err := s.ClearCart(ctx, req.TeacherID); err != nil {
+	    return fmt.Errorf("order created, but failed to clear cart: %v", err)
+	}
 
 	return nil
 }

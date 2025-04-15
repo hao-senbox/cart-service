@@ -62,7 +62,7 @@ func (r *CartHistoryRepository) AddAllCartHistory(ctx context.Context, teacherID
 				TeacherID:  teacherID,
 				StudentID:  cart.StudentID,
 				ProductID:  item.ProductID,
-				EventType:  "remove",
+				EventType:  "order",
 				Quantity:   item.Quantity,
 				OcccuredOn: time.Now(),
 			}
