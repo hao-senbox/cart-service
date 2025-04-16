@@ -23,6 +23,7 @@ type CartService interface {
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID string) error
 	ClearCart(ctx context.Context, teacherID string) error
 	CheckOutCart(ctx context.Context, req *models.CheckOutCartRequest) error
+	GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
 }
 
 type cartService struct {
@@ -369,3 +370,8 @@ func (c *callAPI) CreateOrderByUserID(userID, types, email, street, city, countr
 
 	return responseData, nil
 }
+
+func (s *cartService) GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error) {
+	return s.repoCart.GetCartHistoryByTeacher(ctx, teacherID)
+}
+

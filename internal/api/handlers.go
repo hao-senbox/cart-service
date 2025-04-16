@@ -25,6 +25,7 @@ func RegisterHandlers(r *gin.Engine, cartService service.CartService) {
 	adminCartGroup := r.Group("/api/v1/admin/cart")
 	{
 		adminCartGroup.GET("", handlers.GetAllCartGroupedByTeacher)
+		adminCartGroup.GET("/history", handlers.GetCartHistoryByTeacher)
 	}
 
 	cartGroup := r.Group("/api/v1/cart")
@@ -209,4 +210,24 @@ func (h *CartHandlers) CheckOutCart(c *gin.Context) {
 	} 
 
 	SendSuccess(c, http.StatusOK, "Checkout successfully", nil)
+}
+
+func (h *CartHandlers) GetCartHistoryByTeacher(c *gin.Context) {
+	
+	var req models.UserRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, err, models.ErrInvalidRequest)
+		return 
+	}
+
+
+	cartHistory, err := h.cartService.GetCartHistoryByTeacher(c, req.TeacherID)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
+		return
+	}
+
+	SendSuccess(c, http.StatusOK, "Cart history data of teacher retrieved successfully", cartHistory)
+
 }
