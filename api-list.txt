@@ -1,0 +1,14 @@
+CART-SERVICE
+
+POST - /api/v1/cart/items/checkout
+
+ORDER-SERVICE
+
+GET - /api/v1/admin/orders/
+POST - /api/v1/admin/orders/:id/verify-payment
+POST - /api/v1/admin/orders/:id/cancel
+GET - /api/v1/orders/:user
+POST - /api/v1/orders/:items
+GET - /api/v1/orders/items/:id
+DELETE - /api/v1/orders/items/:id
+
