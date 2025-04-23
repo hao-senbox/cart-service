@@ -22,18 +22,47 @@ type CartRepository interface {
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID) error
 	ClearCart(ctx context.Context, teacherID string) error
 	GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
+	Add(ctx context.Context, test *models.Test) error
+	GetAll(ctx context.Context) (data *[]models.Test, err error)
 }
 
 type cartRepository struct {
 	collection        *mongo.Collection
 	collectionHistory *mongo.Collection
+	collectionTest    *mongo.Collection
 }
 
-func NewCartRepository(collection *mongo.Collection, collectionHistory *mongo.Collection) CartRepository {
+func NewCartRepository(collection *mongo.Collection, collectionHistory *mongo.Collection, collectionTest *mongo.Collection) CartRepository {
 	return &cartRepository{
 		collection:        collection,
 		collectionHistory: collectionHistory,
+		collectionTest:    collectionTest,
 	}
+}
+
+func (r *cartRepository) GetAll(ctx context.Context) (data *[]models.Test, err error) {
+	cursor, err := r.collectionTest.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	var tests []models.Test
+	if err := cursor.All(ctx, &tests); err != nil {
+		return nil, err
+	}
+
+	return &tests, nil
+}
+
+func (r *cartRepository) Add(ctx context.Context, test *models.Test) error {
+
+	_, err := r.collectionTest.InsertOne(ctx, test)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *cartRepository) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson.M, error) {
@@ -394,52 +423,52 @@ func (r *cartRepository) UpdateCartTotalPrice(ctx context.Context, cart *models.
 }
 
 func (r *cartRepository) GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error) {
-    pipeline := mongo.Pipeline{
-        // Lọc theo teacherID
-        bson.D{{Key: "$match", Value: bson.D{{Key: "teacher_id", Value: teacherID}}}},
-        
-        // Nhóm theo teacherID và studentID
-        bson.D{{Key: "$group", Value: bson.D{
-            {Key: "_id", Value: bson.D{
-                {Key: "teacher_id", Value: "$teacher_id"},
-                {Key: "student_id", Value: "$student_id"},
-            }},
-            {Key: "products", Value: bson.D{{Key: "$push", Value: bson.D{
-                {Key: "product_id", Value: "$product_id"},
-                {Key: "event_type", Value: "$event_type"},
-                {Key: "quantity", Value: "$quantity"},
-                {Key: "occurred_on", Value: "$occured_on"},
-            }}}},
-        }}},
-        
-        // Nhóm lại lần nữa để có cấu trúc teacher -> students
-        bson.D{{Key: "$group", Value: bson.D{
-            {Key: "_id", Value: "$_id.teacher_id"},
-            {Key: "teacher_id", Value: bson.D{{Key: "$first", Value: "$_id.teacher_id"}}},
-            {Key: "students", Value: bson.D{{Key: "$push", Value: bson.D{
-                {Key: "student_id", Value: "$_id.student_id"},
-                {Key: "products", Value: "$products"},
-            }}}},
-        }}},
-        
-        // Định dạng lại kết quả cuối cùng
-        bson.D{{Key: "$project", Value: bson.D{
-            {Key: "_id", Value: 0},
-            {Key: "teacher_id", Value: 1},
-            {Key: "students", Value: 1},
-        }}},
-    }
-    
-    cursor, err := r.collection.Aggregate(ctx, pipeline)
-    if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(ctx)
-    
-    var results []bson.M
-    if err = cursor.All(ctx, &results); err != nil {
-        return nil, err
-    }
-    
-    return results, nil
+	pipeline := mongo.Pipeline{
+		// Lọc theo teacherID
+		bson.D{{Key: "$match", Value: bson.D{{Key: "teacher_id", Value: teacherID}}}},
+
+		// Nhóm theo teacherID và studentID
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: bson.D{
+				{Key: "teacher_id", Value: "$teacher_id"},
+				{Key: "student_id", Value: "$student_id"},
+			}},
+			{Key: "products", Value: bson.D{{Key: "$push", Value: bson.D{
+				{Key: "product_id", Value: "$product_id"},
+				{Key: "event_type", Value: "$event_type"},
+				{Key: "quantity", Value: "$quantity"},
+				{Key: "occurred_on", Value: "$occured_on"},
+			}}}},
+		}}},
+
+		// Nhóm lại lần nữa để có cấu trúc teacher -> students
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$_id.teacher_id"},
+			{Key: "teacher_id", Value: bson.D{{Key: "$first", Value: "$_id.teacher_id"}}},
+			{Key: "students", Value: bson.D{{Key: "$push", Value: bson.D{
+				{Key: "student_id", Value: "$_id.student_id"},
+				{Key: "products", Value: "$products"},
+			}}}},
+		}}},
+
+		// Định dạng lại kết quả cuối cùng
+		bson.D{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "teacher_id", Value: 1},
+			{Key: "students", Value: 1},
+		}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var results []bson.M
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

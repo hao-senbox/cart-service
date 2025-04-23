@@ -24,6 +24,8 @@ type CartService interface {
 	ClearCart(ctx context.Context, teacherID string) error
 	CheckOutCart(ctx context.Context, req *models.CheckOutCartRequest) error
 	GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
+	Add(ctx context.Context, req *models.Test) error
+	GetAll(ctx context.Context) (data *[]models.Test, err error)
 }
 
 type cartService struct {
@@ -53,6 +55,19 @@ func NewCartService(repo repository.CartRepository, repoHistory repository.CartH
 		productAPI:  productAPI,
 		orderAPI:    orderAPI,
 	}
+}
+
+func (s *cartService) GetAll(ctx context.Context) (data *[]models.Test, err error) {
+	return s.repoCart.GetAll(ctx)
+}
+func (s *cartService) Add(ctx context.Context, req *models.Test) error {
+
+	test := &models.Test{
+		Text1: req.Text1,
+		Text2: req.Text2,
+	}
+
+	return s.repoCart.Add(ctx, test)
 }
 
 func (s *cartService) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson.M, error) {
@@ -352,7 +367,7 @@ func (c *callAPI) CreateOrderByUserID(userID, types, email, street, city, countr
 	}
 
 	// Gọi API sử dụng phương thức POST
-	endpoint := "/api/orders/items"
+	endpoint := "/api/v1/orders/items"
 	res, err := c.client.CallAPI(c.clientServer, endpoint, http.MethodPost, jsonData, headers)
 	if err != nil {
 		return nil, fmt.Errorf("error calling API: %v", err)
