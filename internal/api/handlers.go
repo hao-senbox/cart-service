@@ -54,7 +54,7 @@ func (h *CartHandlers) GetAll(c *gin.Context) {
 		return
 	}
 
-	SendSuccess(c, http.StatusOK, "Test data retrieved successfully", tests)
+	SendSuccess(c, http.StatusOK, "Data retrieved successfully", tests)
 }
 
 func (h *CartHandlers) Add (c *gin.Context) {

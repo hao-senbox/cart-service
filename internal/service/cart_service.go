@@ -62,6 +62,19 @@ func (s *cartService) GetAll(ctx context.Context) (data *[]models.Test, err erro
 }
 func (s *cartService) Add(ctx context.Context, req *models.Test) error {
 
+	testData, err := s.repoCart.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(*testData) > 0 {
+		for _, item := range *testData {
+			if item.Text1 == req.Text1 && item.Text2 == req.Text2 {
+				return fmt.Errorf("test already exists")
+			}
+		}
+	}
+
 	test := &models.Test{
 		Text1: req.Text1,
 		Text2: req.Text2,
