@@ -1,10 +1,14 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"store/internal/models"
 	"store/internal/service"
+	"store/pkg/constants"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,15 +26,15 @@ func RegisterHandlers(r *gin.Engine, cartService service.CartService) {
 
 	handlers := NewCartHandlers(cartService)
 
-	adminCartGroup := r.Group("/api/v1/admin/cart")
+	adminCartGroup := r.Group("/api/v1/admin/cart").Use(Secured())
 	{
 		adminCartGroup.GET("", handlers.GetAllCartGroupedByTeacher)
 		adminCartGroup.GET("/history", handlers.GetCartHistoryByTeacher)
 	}
 
-	cartGroup := r.Group("/api/v1/cart")
+	cartGroup := r.Group("/api/v1/cart").Use(Secured())
 	{
-		cartGroup.GET("/items/:teacher_id", handlers.GetCart)
+		cartGroup.GET("/items", handlers.GetCart)
 		cartGroup.POST("/items", handlers.AddToCart)
 		cartGroup.PUT("/items/:product_id", handlers.UpdateQuantity)
 		cartGroup.DELETE("/items/:product_id", handlers.RemoveFromCart)
@@ -38,11 +42,6 @@ func RegisterHandlers(r *gin.Engine, cartService service.CartService) {
 		cartGroup.POST("/items/checkout", handlers.CheckOutCart)
 	}
 
-	testApi := r.Group("/api/v1/test")
-	{
-		testApi.POST("/add", handlers.Add)
-		testApi.GET("/get", handlers.GetAll)
-	}
 }
 
 func (h *CartHandlers) GetAll(c *gin.Context) {
@@ -90,14 +89,18 @@ func (h *CartHandlers) GetAllCartGroupedByTeacher(c *gin.Context) {
 
 func (h *CartHandlers) GetCart(c *gin.Context) {
 
-	teacherID := c.Param("teacher_id")
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
 
 	if teacherID == "" {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
 		return
 	}
 	
-	cart, err := h.cartService.GetCartByTeacher(c.Request.Context(), teacherID)
+	cart, err := h.cartService.GetCartByTeacher(c.Request.Context(), teacherID.(string))
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
@@ -116,10 +119,18 @@ func (h *CartHandlers) AddToCart(c *gin.Context) {
 		return 
 	}
 
-	if req.TeacherID == "" {
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	if teacherID == "" {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
 		return
 	}
+
+	req.TeacherID = teacherID.(string)
 
 	if req.StudentID == "" {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("student ID cannot be empty"), models.ErrInvalidRequest)
@@ -157,10 +168,18 @@ func (h *CartHandlers) UpdateQuantity(c *gin.Context) {
 		return
 	}
 
-	if req.TeacherID == "" {
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	if teacherID == "" {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
 		return
 	}
+
+	req.TeacherID = teacherID.(string)
 
 	if req.StudentID == "" {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("student ID cannot be empty"), models.ErrInvalidRequest)
@@ -199,6 +218,19 @@ func (h *CartHandlers) RemoveFromCart(c *gin.Context) {
 		return
 	}
 
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	if teacherID == "" {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	req.TeacherID = teacherID.(string)
+
 	err := h.cartService.RemoveFromCart(c.Request.Context(), req.TeacherID, req.StudentID, productID)
 
 	if err != nil {
@@ -211,14 +243,20 @@ func (h *CartHandlers) RemoveFromCart(c *gin.Context) {
 
 func (h *CartHandlers) ClearCart(c *gin.Context) {
 
-	var req models.UserRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		SendError(c, http.StatusBadRequest, err, models.ErrInvalidRequest)
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
 		return
 	}
+
+	if teacherID == "" {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	TeacherID := teacherID.(string)
 	
-	err := h.cartService.ClearCart(c.Request.Context(), req.TeacherID)
+	err := h.cartService.ClearCart(c.Request.Context(), TeacherID)
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
@@ -238,7 +276,28 @@ func (h *CartHandlers) CheckOutCart(c *gin.Context) {
 		return 
 	}
 
-	err := h.cartService.CheckOutCart(c.Request.Context(), &req)
+	teacherID, exists := c.Get(constants.UserID)
+	if !exists {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("user ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	if teacherID == "" {
+		SendError(c, http.StatusBadRequest, fmt.Errorf("teacher ID cannot be empty"), models.ErrInvalidRequest)
+		return
+	}
+
+	token, ok := c.Get(constants.Token)
+	if !ok {
+		SendError(c, http.StatusForbidden, errors.New("unauthorized"), models.ErrInvalidRequest)
+		return
+	}
+
+	ctx := context.WithValue(c, constants.TokenKey, token)
+	
+	req.TeacherID = teacherID.(string)
+
+	err := h.cartService.CheckOutCart(ctx, &req)
 
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)

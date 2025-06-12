@@ -5,6 +5,7 @@ go 1.24.1
 require (
 	github.com/EventStore/EventStore-Client-Go v1.0.2
 	github.com/gin-gonic/gin v1.10.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/hashicorp/consul/api v1.32.0
 	github.com/joho/godotenv v1.5.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible

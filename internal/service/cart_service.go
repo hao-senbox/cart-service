@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"math/rand"
 	"net/http"
 	"store/internal/models"
 	"store/internal/repository"
+	"store/pkg/constants"
 	"store/pkg/consul"
-	"time"
+
+	"github.com/hashicorp/consul/api"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CartService interface {
@@ -97,60 +97,61 @@ func (s *cartService) AddToCart(ctx context.Context, req *models.AddToCartReques
 		return nil, fmt.Errorf("invalid product ID format: %v", err)
 	}
 
-	// productRes := s.productAPI.GetProductByID(req.ProductID)
+	productRes := s.productAPI.GetProductByID(req.ProductID)
 
-	// if productRes == nil {
-	// 	return nil, fmt.Errorf("product not found")
-	// }
-
-	// product := productRes["data"].(map[string]interface{})
-
-	// name := product["product_name"].(string)
-	// price := product["original_price"].(float64)
-	// imageURL := product["cover_image"].(string)
-	// topic := product["topic_name"].(string)
-
-	sampleProducts := []struct {
-		Name     string
-		Price    float64
-		ImageURL string
-	}{
-		{"High-Performance Gaming Laptop with RTX Graphics", 1499.99, "https://example.com/images/laptop.jpg"},
-		{"Mechanical RGB Backlit Keyboard for Gaming and Office", 79.99, "https://example.com/images/keyboard.jpg"},
-		{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 39.99, "https://example.com/images/mouse.jpg"},
-		{"27-Inch 4K Ultra HD Monitor with HDR Support", 299.99, "https://example.com/images/monitor.jpg"},
-		{"All-in-One Wireless Color Printer with Scanner", 189.99, "https://example.com/images/printer.jpg"},
-		{"Latest Generation Smartphone with 5G and Triple Camera", 999.99, "https://example.com/images/smartphone.jpg"},
-		{"10.1-Inch Android Tablet with Stylus Support", 349.99, "https://example.com/images/tablet.jpg"},
-		{"Fitness Smartwatch with Heart Rate and GPS Tracker", 149.99, "https://example.com/images/smartwatch.jpg"},
-		{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 119.99, "https://example.com/images/headphones.jpg"},
-		{"Portable Bluetooth Speaker with Waterproof Design", 69.99, "https://example.com/images/speaker.jpg"},
-		{"1080p Full HD Webcam with Built-in Microphone", 49.99, "https://example.com/images/webcam.jpg"},
-		{"1TB USB 3.0 External Hard Drive for Backup and Storage", 109.99, "https://example.com/images/hdd.jpg"},
-		{"64GB USB Flash Drive with High-Speed File Transfer", 24.99, "https://example.com/images/usb.jpg"},
-		{"Ergonomic Gaming Chair with Adjustable Armrests", 259.99, "https://example.com/images/gaming-chair.jpg"},
-		{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 599.99, "https://example.com/images/gpu.jpg"},
-		{"ATX Motherboard for Intel Processors with WiFi Support", 179.99, "https://example.com/images/motherboard.jpg"},
-		{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 74.99, "https://example.com/images/ram.jpg"},
-		{"750W Modular Power Supply with 80+ Gold Certification", 129.99, "https://example.com/images/psu.jpg"},
-		{"Adjustable LED Desk Lamp with USB Charging Port", 39.99, "https://example.com/images/desk-lamp.jpg"},
-		{"Dual-Band Wireless Router with Parental Controls", 109.99, "https://example.com/images/router.jpg"},
+	if productRes == nil {
+		return nil, fmt.Errorf("product not found")
 	}
 
-	now := time.Now()
-	// Tạo seed cho random
-	rand.Seed(now.UnixNano())
+	product := productRes["data"].(map[string]interface{})
 
-	// Lấy ngẫu nhiên 1 sản phẩm
-	randomIndex := rand.Intn(len(sampleProducts))
-	selected := sampleProducts[randomIndex]
+	name := product["product_name"].(string)
+	price := product["original_price"].(float64)
+	imageURL := product["cover_image"].(string)
+	topic := product["topic_name"].(string)
+
+	// sampleProducts := []struct {
+	// 	Name     string
+	// 	Price    float64
+	// 	ImageURL string
+	// }{
+	// 	{"High-Performance Gaming Laptop with RTX Graphics", 1499.99, "https://example.com/images/laptop.jpg"},
+	// 	{"Mechanical RGB Backlit Keyboard for Gaming and Office", 79.99, "https://example.com/images/keyboard.jpg"},
+	// 	{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 39.99, "https://example.com/images/mouse.jpg"},
+	// 	{"27-Inch 4K Ultra HD Monitor with HDR Support", 299.99, "https://example.com/images/monitor.jpg"},
+	// 	{"All-in-One Wireless Color Printer with Scanner", 189.99, "https://example.com/images/printer.jpg"},
+	// 	{"Latest Generation Smartphone with 5G and Triple Camera", 999.99, "https://example.com/images/smartphone.jpg"},
+	// 	{"10.1-Inch Android Tablet with Stylus Support", 349.99, "https://example.com/images/tablet.jpg"},
+	// 	{"Fitness Smartwatch with Heart Rate and GPS Tracker", 149.99, "https://example.com/images/smartwatch.jpg"},
+	// 	{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 119.99, "https://example.com/images/headphones.jpg"},
+	// 	{"Portable Bluetooth Speaker with Waterproof Design", 69.99, "https://example.com/images/speaker.jpg"},
+	// 	{"1080p Full HD Webcam with Built-in Microphone", 49.99, "https://example.com/images/webcam.jpg"},
+	// 	{"1TB USB 3.0 External Hard Drive for Backup and Storage", 109.99, "https://example.com/images/hdd.jpg"},
+	// 	{"64GB USB Flash Drive with High-Speed File Transfer", 24.99, "https://example.com/images/usb.jpg"},
+	// 	{"Ergonomic Gaming Chair with Adjustable Armrests", 259.99, "https://example.com/images/gaming-chair.jpg"},
+	// 	{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 599.99, "https://example.com/images/gpu.jpg"},
+	// 	{"ATX Motherboard for Intel Processors with WiFi Support", 179.99, "https://example.com/images/motherboard.jpg"},
+	// 	{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 74.99, "https://example.com/images/ram.jpg"},
+	// 	{"750W Modular Power Supply with 80+ Gold Certification", 129.99, "https://example.com/images/psu.jpg"},
+	// 	{"Adjustable LED Desk Lamp with USB Charging Port", 39.99, "https://example.com/images/desk-lamp.jpg"},
+	// 	{"Dual-Band Wireless Router with Parental Controls", 109.99, "https://example.com/images/router.jpg"},
+	// }
+
+	// now := time.Now()
+	// // Tạo seed cho random
+	// rand.Seed(now.UnixNano())
+
+	// // Lấy ngẫu nhiên 1 sản phẩm
+	// randomIndex := rand.Intn(len(sampleProducts))
+	// selected := sampleProducts[randomIndex]
 
 	cartItem := &models.CartItem{
 		ProductID:   productID,
 		Quantity:    req.Quantity,
-		ProductName: selected.Name,
-		Price:       selected.Price,
-		ImageURL:    selected.ImageURL,
+		ProductName: name,
+		TopicName:   topic,
+		Price:       price,
+		ImageURL:    imageURL,
 	}
 
 	// cartItem := &models.CartItem{
@@ -288,7 +289,7 @@ func (s *cartService) CheckOutCart(ctx context.Context, req *models.CheckOutCart
 		return fmt.Errorf("phone cannot be empty")
 	}
 
-	response, err := s.orderAPI.CreateOrderByUserID(req.TeacherID, req.Types, req.Email, req.Street, req.City, req.Country, req.Phone, req.State)
+	response, err := s.orderAPI.CreateOrderByUserID(ctx, req.TeacherID, req.Types, req.Email, req.Street, req.City, req.Country, req.Phone, req.State)
 	if err != nil {
 		return fmt.Errorf("failed to create order: %v", err)
 	}
@@ -352,8 +353,8 @@ func (c *callAPI) GetProductByID(productID string) map[string]interface{} {
 	return myMap
 }
 
-func (c *callAPI) CreateOrderByUserID(userID, types, email, street, city, country, phone string, state *string) (interface{}, error) {
-	// Tạo dữ liệu body cho request POST
+func (c *callAPI) CreateOrderByUserID(ctx context.Context ,userID, types, email, street, city, country, phone string, state *string) (interface{}, error) {
+
 	requestBody := map[string]string{
 		"teacher_id": userID,
 		"email":      email,
@@ -377,6 +378,7 @@ func (c *callAPI) CreateOrderByUserID(userID, types, email, street, city, countr
 	// Thiết lập headers
 	headers := map[string]string{
 		"Content-Type": "application/json",
+		"Authorization": "Bearer " + ctx.Value(constants.TokenKey).(string),
 	}
 
 	// Gọi API sử dụng phương thức POST
