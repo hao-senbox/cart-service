@@ -1,14 +1,16 @@
+
 CART-SERVICE
+GET     /api/v1/admin/cart
+GET     /api/v1/admin/cart/history
+GET     /api/v1/cart/items
+POST    /api/v1/cart/items
+PUT     /api/v1/cart//items/:product_id
+DELETE  /api/v1/cart//items/:product_id
+DELETE  /api/v1/cart//items
+POST    /api/v1/cart//items/checkout
 
-POST - /api/v1/cart/items/checkout
 
-ORDER-SERVICE
 
-GET - /api/v1/admin/orders/
-POST - /api/v1/admin/orders/:id/verify-payment
-POST - /api/v1/admin/orders/:id/cancel
-GET - /api/v1/orders/:user
-POST - /api/v1/orders/:items
-GET - /api/v1/orders/items/:id
-DELETE - /api/v1/orders/items/:id
+
+
 
