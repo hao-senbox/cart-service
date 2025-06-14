@@ -37,4 +37,4 @@ RUN chmod +x /wait-for-it.sh
 EXPOSE 8004
 
 # Set the entrypoint to wait for MariaDB to be ready before starting the application
-CMD ["/wait-for-it.sh", "cart_db:27017", "--", "./api"] 
+CMD ["/wait-for-it.sh", "cart_db:27018", "--", "./api"] 
