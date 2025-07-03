@@ -44,37 +44,6 @@ func RegisterHandlers(r *gin.Engine, cartService service.CartService) {
 
 }
 
-func (h *CartHandlers) GetAll(c *gin.Context) {
-
-	tests, err := h.cartService.GetAll(c.Request.Context())
-
-	if err != nil {
-		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
-		return
-	}
-
-	SendSuccess(c, http.StatusOK, "Data retrieved successfully", tests)
-}
-
-func (h *CartHandlers) Add (c *gin.Context) {
-	
-	var req models.Test
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		SendError(c, http.StatusBadRequest, err, models.ErrInvalidRequest)	
-	}
-
-	err := h.cartService.Add(c.Request.Context(), &req)
-
-	if err != nil {
-		SendError(c, http.StatusInternalServerError, err, models.ErrInvalidOperation)
-		return	
-	}
-
-	SendSuccess(c, http.StatusOK, "Data added successfully", nil)
-}
-
-
 func (h *CartHandlers) GetAllCartGroupedByTeacher(c *gin.Context) {
 
 	cart, err := h.cartService.GetAllCartGroupedByTeacher(c.Request.Context())

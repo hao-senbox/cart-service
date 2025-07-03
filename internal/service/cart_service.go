@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"store/internal/models"
 	"store/internal/repository"
 	"store/pkg/constants"
 	"store/pkg/consul"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,8 +26,6 @@ type CartService interface {
 	ClearCart(ctx context.Context, teacherID string) error
 	CheckOutCart(ctx context.Context, req *models.CheckOutCartRequest) error
 	GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
-	Add(ctx context.Context, req *models.Test) error
-	GetAll(ctx context.Context) (data *[]models.Test, err error)
 }
 
 type cartService struct {
@@ -57,32 +57,6 @@ func NewCartService(repo repository.CartRepository, repoHistory repository.CartH
 	}
 }
 
-func (s *cartService) GetAll(ctx context.Context) (data *[]models.Test, err error) {
-	return s.repoCart.GetAll(ctx)
-}
-func (s *cartService) Add(ctx context.Context, req *models.Test) error {
-
-	testData, err := s.repoCart.GetAll(ctx)
-	if err != nil {
-		return err
-	}
-
-	if len(*testData) > 0 {
-		for _, item := range *testData {
-			if item.Text1 == req.Text1 && item.Text2 == req.Text2 {
-				return fmt.Errorf("test already exists")
-			}
-		}
-	}
-
-	test := &models.Test{
-		Text1: req.Text1,
-		Text2: req.Text2,
-	}
-
-	return s.repoCart.Add(ctx, test)
-}
-
 func (s *cartService) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson.M, error) {
 	return s.repoCart.GetAllCartGroupedByTeacher(ctx)
 }
@@ -92,75 +66,80 @@ func (s *cartService) GetCartByTeacher(ctx context.Context, teacherID string) ([
 }
 
 func (s *cartService) AddToCart(ctx context.Context, req *models.AddToCartRequest) (*models.CartItem, error) {
+
 	productID, err := primitive.ObjectIDFromHex(req.ProductID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID format: %v", err)
 	}
 
-	productRes := s.productAPI.GetProductByID(req.ProductID)
+	// productRes := s.productAPI.GetProductByID(req.ProductID)
 
-	if productRes == nil {
-		return nil, fmt.Errorf("product not found")
-	}
-
-	product := productRes["data"].(map[string]interface{})
-
-	name := product["product_name"].(string)
-	price := product["original_price"].(float64)
-	imageURL := product["cover_image"].(string)
-	topic := product["topic_name"].(string)
-
-	// sampleProducts := []struct {
-	// 	Name     string
-	// 	Price    float64
-	// 	ImageURL string
-	// }{
-	// 	{"High-Performance Gaming Laptop with RTX Graphics", 1499.99, "https://example.com/images/laptop.jpg"},
-	// 	{"Mechanical RGB Backlit Keyboard for Gaming and Office", 79.99, "https://example.com/images/keyboard.jpg"},
-	// 	{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 39.99, "https://example.com/images/mouse.jpg"},
-	// 	{"27-Inch 4K Ultra HD Monitor with HDR Support", 299.99, "https://example.com/images/monitor.jpg"},
-	// 	{"All-in-One Wireless Color Printer with Scanner", 189.99, "https://example.com/images/printer.jpg"},
-	// 	{"Latest Generation Smartphone with 5G and Triple Camera", 999.99, "https://example.com/images/smartphone.jpg"},
-	// 	{"10.1-Inch Android Tablet with Stylus Support", 349.99, "https://example.com/images/tablet.jpg"},
-	// 	{"Fitness Smartwatch with Heart Rate and GPS Tracker", 149.99, "https://example.com/images/smartwatch.jpg"},
-	// 	{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 119.99, "https://example.com/images/headphones.jpg"},
-	// 	{"Portable Bluetooth Speaker with Waterproof Design", 69.99, "https://example.com/images/speaker.jpg"},
-	// 	{"1080p Full HD Webcam with Built-in Microphone", 49.99, "https://example.com/images/webcam.jpg"},
-	// 	{"1TB USB 3.0 External Hard Drive for Backup and Storage", 109.99, "https://example.com/images/hdd.jpg"},
-	// 	{"64GB USB Flash Drive with High-Speed File Transfer", 24.99, "https://example.com/images/usb.jpg"},
-	// 	{"Ergonomic Gaming Chair with Adjustable Armrests", 259.99, "https://example.com/images/gaming-chair.jpg"},
-	// 	{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 599.99, "https://example.com/images/gpu.jpg"},
-	// 	{"ATX Motherboard for Intel Processors with WiFi Support", 179.99, "https://example.com/images/motherboard.jpg"},
-	// 	{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 74.99, "https://example.com/images/ram.jpg"},
-	// 	{"750W Modular Power Supply with 80+ Gold Certification", 129.99, "https://example.com/images/psu.jpg"},
-	// 	{"Adjustable LED Desk Lamp with USB Charging Port", 39.99, "https://example.com/images/desk-lamp.jpg"},
-	// 	{"Dual-Band Wireless Router with Parental Controls", 109.99, "https://example.com/images/router.jpg"},
+	// if productRes == nil {
+	// 	return nil, fmt.Errorf("product not found")
 	// }
 
-	// now := time.Now()
-	// // Tạo seed cho random
-	// rand.Seed(now.UnixNano())
+	// product := productRes["data"].(map[string]interface{})
 
-	// // Lấy ngẫu nhiên 1 sản phẩm
-	// randomIndex := rand.Intn(len(sampleProducts))
-	// selected := sampleProducts[randomIndex]
+	// name := product["product_name"].(string)
+	// priceStore := product["price_store"].(float64)
+	// priceService := product["price_service"].(float64)
+	// imageURL := product["cover_image"].(string)
+	// topic := product["topic_name"].(string)
+
+	sampleProducts := []struct {
+		Name         string
+		PriceStore   float64
+		PriceService float64
+		ImageURL     string
+	}{
+		{"High-Performance Gaming Laptop with RTX Graphics", 10, 20, "https://example.com/images/laptop.jpg"},
+		{"Mechanical RGB Backlit Keyboard for Gaming and Office", 20, 10, "https://example.com/images/keyboard.jpg"},
+		{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 1, 2, "https://example.com/images/mouse.jpg"},
+		{"27-Inch 4K Ultra HD Monitor with HDR Support", 5, 6, "https://example.com/images/monitor.jpg"},
+		{"All-in-One Wireless Color Printer with Scanner", 3, 4, "https://example.com/images/printer.jpg"},
+		{"Latest Generation Smartphone with 5G and Triple Camera", 9, 10, "https://example.com/images/smartphone.jpg"},
+		{"10.1-Inch Android Tablet with Stylus Support", 3, 4, "https://example.com/images/tablet.jpg"},
+		{"Fitness Smartwatch with Heart Rate and GPS Tracker", 15, 20, "https://example.com/images/smartwatch.jpg"},
+		{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 2, 3, "https://example.com/images/headphones.jpg"},
+		{"Portable Bluetooth Speaker with Waterproof Design", 3, 4, "https://example.com/images/speaker.jpg"},
+		{"1080p Full HD Webcam with Built-in Microphone", 50, 60, "https://example.com/images/webcam.jpg"},
+		{"1TB USB 3.0 External Hard Drive for Backup and Storage", 1, 1, "https://example.com/images/hdd.jpg"},
+		{"64GB USB Flash Drive with High-Speed File Transfer", 2, 2, "https://example.com/images/usb.jpg"},
+		{"Ergonomic Gaming Chair with Adjustable Armrests", 3, 4, "https://example.com/images/gaming-chair.jpg"},
+		{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 7, 7, "https://example.com/images/gpu.jpg"},
+		{"ATX Motherboard for Intel Processors with WiFi Support", 2, 2, "https://example.com/images/motherboard.jpg"},
+		{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 7, 4, "https://example.com/images/ram.jpg"},
+		{"750W Modular Power Supply with 80+ Gold Certification", 12, 9, "https://example.com/images/psu.jpg"},
+		{"Adjustable LED Desk Lamp with USB Charging Port", 3, 9, "https://example.com/images/desk-lamp.jpg"},
+		{"Dual-Band Wireless Router with Parental Controls", 10, 9, "https://example.com/images/router.jpg"},
+	}
+
+	now := time.Now()
+	// Tạo seed cho random
+	rand.Seed(now.UnixNano())
+
+	// Lấy ngẫu nhiên 1 sản phẩm
+	randomIndex := rand.Intn(len(sampleProducts))
+	selected := sampleProducts[randomIndex]
 
 	cartItem := &models.CartItem{
 		ProductID:   productID,
 		Quantity:    req.Quantity,
-		ProductName: name,
-		TopicName:   topic,
-		Price:       price,
-		ImageURL:    imageURL,
+		ProductName: selected.Name,
+		// TopicName:   topic,
+		PriceService: selected.PriceService,
+		PriceStore:   selected.PriceStore,
+		ImageURL:     selected.ImageURL,
 	}
 
 	// cartItem := &models.CartItem{
-	// 	ProductID:   productID,
-	// 	Quantity:    req.Quantity,
-	// 	ProductName: name,
-	// 	TopicName: topic,
-	// 	Price:       float64(price),
-	// 	ImageURL:    imageURL,
+	// 	ProductID:    productID,
+	// 	Quantity:     req.Quantity,
+	// 	ProductName:  name,
+	// 	TopicName:    topic,
+	// 	PriceStore:   priceStore,
+	// 	PriceService: priceService,
+	// 	ImageURL:     imageURL,
 	// }
 
 	if err = s.repoCart.AddItemToCart(ctx, req.TeacherID, req.StudentID, *cartItem); err != nil {
@@ -198,18 +177,20 @@ func (s *cartService) UpdateQuantityItem(ctx context.Context, productID string, 
 	product := productRes["data"].(map[string]interface{})
 
 	name := product["product_name"].(string)
-	price := product["original_price"].(float64)
+	priceStore := product["price_store"].(float64)
+	priceService := product["price_service"].(float64)
 	imageURL := product["cover_image"].(string)
 	topic := product["topic"].(map[string]interface{})
 	topicName := topic["topic_name"].(string)
 
 	cartItem := &models.CartItem{
-		ProductID:   id,
-		Quantity:    1,
-		ProductName: name,
-		TopicName:   topicName,
-		Price:       float64(price),
-		ImageURL:    imageURL,
+		ProductID:    id,
+		Quantity:     1,
+		ProductName:  name,
+		TopicName:    topicName,
+		PriceStore:   priceStore,
+		PriceService: priceService,
+		ImageURL:     imageURL,
 	}
 
 	if err != nil {
@@ -259,7 +240,7 @@ func (s *cartService) ClearCart(ctx context.Context, teacherID string) error {
 	if err != nil {
 		return fmt.Errorf("unable to add all cart history: %w", err)
 	}
-	
+
 	return s.repoCart.ClearCart(ctx, teacherID)
 }
 
@@ -293,11 +274,7 @@ func (s *cartService) CheckOutCart(ctx context.Context, req *models.CheckOutCart
 	if err != nil {
 		return fmt.Errorf("failed to create order: %v", err)
 	}
-	
-	// Có thể log để debug
-	fmt.Printf("Response from API: %+v\n", response)
 
-	// Kiểm tra response có chứa thông tin lỗi không
 	if respMap, ok := response.(map[string]interface{}); ok {
 		if statusCode, exists := respMap["status_code"].(float64); exists && statusCode >= 400 {
 			errorMsg := respMap["error"]
@@ -306,9 +283,9 @@ func (s *cartService) CheckOutCart(ctx context.Context, req *models.CheckOutCart
 		}
 	}
 
-	if err := s.ClearCart(ctx, req.TeacherID); err != nil {
-	    return fmt.Errorf("order created, but failed to clear cart: %v", err)
-	}
+	// if err := s.ClearCart(ctx, req.TeacherID); err != nil {
+	// 	return fmt.Errorf("order created, but failed to clear cart: %v", err)
+	// }
 
 	return nil
 }
@@ -353,7 +330,7 @@ func (c *callAPI) GetProductByID(productID string) map[string]interface{} {
 	return myMap
 }
 
-func (c *callAPI) CreateOrderByUserID(ctx context.Context ,userID, types, email, street, city, country, phone string, state *string) (interface{}, error) {
+func (c *callAPI) CreateOrderByUserID(ctx context.Context, userID, types, email, street, city, country, phone string, state *string) (interface{}, error) {
 
 	requestBody := map[string]string{
 		"teacher_id": userID,
@@ -367,7 +344,7 @@ func (c *callAPI) CreateOrderByUserID(ctx context.Context ,userID, types, email,
 
 	if state != nil {
 		requestBody["state"] = *state
-	}	
+	}
 
 	// Chuyển đổi dữ liệu thành JSON
 	jsonData, err := json.Marshal(requestBody)
@@ -377,7 +354,7 @@ func (c *callAPI) CreateOrderByUserID(ctx context.Context ,userID, types, email,
 
 	// Thiết lập headers
 	headers := map[string]string{
-		"Content-Type": "application/json",
+		"Content-Type":  "application/json",
 		"Authorization": "Bearer " + ctx.Value(constants.TokenKey).(string),
 	}
 
@@ -404,4 +381,3 @@ func (c *callAPI) CreateOrderByUserID(ctx context.Context ,userID, types, email,
 func (s *cartService) GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error) {
 	return s.repoCart.GetCartHistoryByTeacher(ctx, teacherID)
 }
-

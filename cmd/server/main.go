@@ -56,9 +56,8 @@ func main() {
 	// Initialize repositories and service
 	cartCollection := mongoClient.Database(cfg.MongoDB).Collection("carts")
 	cartHistoryCollection := mongoClient.Database(cfg.MongoDB).Collection("cart_history")
-	testCollection := mongoClient.Database(cfg.MongoDB).Collection("test")
 	historyRepo := repository.NewCartHistoryRepository(cartHistoryCollection, cartCollection)
-	cartRepo := repository.NewCartRepository(cartCollection, cartHistoryCollection, testCollection)
+	cartRepo := repository.NewCartRepository(cartCollection, cartHistoryCollection)
 	cartService := service.NewCartService(cartRepo, *historyRepo, consulClient)
 
 	// Set up router with Gin

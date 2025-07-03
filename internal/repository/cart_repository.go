@@ -22,48 +22,20 @@ type CartRepository interface {
 	RemoveFromCart(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID) error
 	ClearCart(ctx context.Context, teacherID string) error
 	GetCartHistoryByTeacher(ctx context.Context, teacherID string) ([]bson.M, error)
-	Add(ctx context.Context, test *models.Test) error
-	GetAll(ctx context.Context) (data *[]models.Test, err error)
 }
 
 type cartRepository struct {
 	collection        *mongo.Collection
 	collectionHistory *mongo.Collection
-	collectionTest    *mongo.Collection
 }
 
-func NewCartRepository(collection *mongo.Collection, collectionHistory *mongo.Collection, collectionTest *mongo.Collection) CartRepository {
+func NewCartRepository(collection *mongo.Collection, collectionHistory *mongo.Collection) CartRepository {
 	return &cartRepository{
 		collection:        collection,
 		collectionHistory: collectionHistory,
-		collectionTest:    collectionTest,
 	}
 }
 
-func (r *cartRepository) GetAll(ctx context.Context) (data *[]models.Test, err error) {
-	cursor, err := r.collectionTest.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
-	}
-
-	var tests []models.Test
-	if err := cursor.All(ctx, &tests); err != nil {
-		return nil, err
-	}
-
-	return &tests, nil
-}
-
-func (r *cartRepository) Add(ctx context.Context, test *models.Test) error {
-
-	_, err := r.collectionTest.InsertOne(ctx, test)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func (r *cartRepository) GetAllCartGroupedByTeacher(ctx context.Context) ([]bson.M, error) {
 	// Pipeline gom nhóm theo teacher_id
@@ -101,13 +73,14 @@ func (r *cartRepository) GetCartByTeacherStudent(ctx context.Context, teacherID 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			newCart := &models.Cart{
-				ID:         primitive.NewObjectID(),
-				TeacherID:  teacherID,
-				StudentID:  studentID,
-				Items:      []models.CartItem{},
-				TotalPrice: 0,
-				CreateAt:   time.Now(),
-				UpdateAt:   time.Now(),
+				ID:                primitive.NewObjectID(),
+				TeacherID:         teacherID,
+				StudentID:         studentID,
+				Items:             []models.CartItem{},
+				TotalPriceStore:   0.0,
+				TotalPriceService: 0.0,
+				CreateAt:          time.Now(),
+				UpdateAt:          time.Now(),
 			}
 			_, insertErr := r.collection.InsertOne(ctx, newCart)
 			if insertErr != nil {
@@ -171,9 +144,10 @@ func (r *cartRepository) UpdateCart(ctx context.Context, cart *models.Cart) erro
 
 	update := bson.M{
 		"$set": bson.M{
-			"items":       cart.Items,
-			"total_price": cart.TotalPrice,
-			"update_at":   cart.UpdateAt,
+			"items":               cart.Items,
+			"total_price_store":   cart.TotalPriceStore,
+			"total_price_service": cart.TotalPriceService,
+			"update_at":           cart.UpdateAt,
 		},
 	}
 
@@ -402,7 +376,8 @@ func (r *cartRepository) ClearCart(ctx context.Context, teacherID string) error 
 			return err
 		}
 		cart.Items = []models.CartItem{}
-		cart.TotalPrice = 0
+		cart.TotalPriceStore = 0
+		cart.TotalPriceService = 0
 		cart.UpdateAt = time.Now()
 
 		if err := r.UpdateCart(ctx, &cart); err != nil {
@@ -414,11 +389,14 @@ func (r *cartRepository) ClearCart(ctx context.Context, teacherID string) error 
 }
 
 func (r *cartRepository) UpdateCartTotalPrice(ctx context.Context, cart *models.Cart) error {
-	totalPrice := 0.0
+	totalPriceStore := 0.0
+	totalPriceService := 0.0
 	for _, item := range cart.Items {
-		totalPrice += item.Price * float64(item.Quantity)
+		totalPriceStore += item.PriceStore * float64(item.Quantity)
+		totalPriceService += item.PriceService * float64(item.Quantity)
 	}
-	cart.TotalPrice = math.Round(totalPrice*100) / 100
+	cart.TotalPriceStore = math.Round(totalPriceStore*100) / 100
+	cart.TotalPriceService = math.Round(totalPriceService*100) / 100
 	return r.UpdateCart(ctx, cart)
 }
 
