@@ -103,8 +103,11 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 			Key: "$group", Value: bson.D{
 				{Key: "_id", Value: "$student_id"},
 				{Key: "items", Value: bson.M{"$first": "$items"}},
-				{Key: "total_price", Value: bson.M{
-					"$sum": "$total_price",
+				{Key: "total_price_store", Value: bson.M{
+					"$sum": "$total_price_store",
+				}},
+				{Key: "total_price_service", Value: bson.M{
+					"$sum": "$total_price_service",
 				}},
 				{Key: "create_at", Value: bson.M{"$first": "$create_at"}},
 			},
@@ -114,8 +117,11 @@ func (r *cartRepository) GetCartByTeacher(ctx context.Context, teacherID string)
 				{Key: "_id", Value: 1},
 				{Key: "items", Value: 1},
 				{Key: "create_at", Value: 1}, // Include create_at field here
-				{Key: "total_price", Value: bson.M{
-					"$round": bson.A{"$total_price", 2},
+				{Key: "total_price_store", Value: bson.M{
+					"$round": bson.A{"$total_price_store", 2},
+				}},
+				{Key: "total_price_service", Value: bson.M{
+					"$round": bson.A{"$total_price_service", 2},
 				}},
 			},
 		}},
@@ -182,7 +188,7 @@ func (r *cartRepository) AddItemToCart(ctx context.Context, teacherID string, st
 		cart.Items = append(cart.Items, item)
 	}
 
-	return r.UpdateCartTotalPrice(ctx, cart)
+	return r.UpdateCartTotalPrice(ctx, cart)	
 }
 
 func (r *cartRepository) UpdateCartItemQuantity(ctx context.Context, teacherID string, studentID string, productID primitive.ObjectID, quantity int, types string, item models.CartItem) error {
