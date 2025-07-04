@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"store/internal/models"
 	"store/internal/repository"
 	"store/pkg/constants"
 	"store/pkg/consul"
-	"time"
 
 	"github.com/hashicorp/consul/api"
 	"go.mongodb.org/mongo-driver/bson"
@@ -72,75 +70,75 @@ func (s *cartService) AddToCart(ctx context.Context, req *models.AddToCartReques
 		return nil, fmt.Errorf("invalid product ID format: %v", err)
 	}
 
-	// productRes := s.productAPI.GetProductByID(req.ProductID)
+	productRes := s.productAPI.GetProductByID(req.ProductID)
 
-	// if productRes == nil {
-	// 	return nil, fmt.Errorf("product not found")
+	if productRes == nil {
+		return nil, fmt.Errorf("product not found")
+	}
+
+	product := productRes["data"].(map[string]interface{})
+
+	name := product["product_name"].(string)
+	priceStore := product["price_store"].(float64)
+	priceService := product["price_service"].(float64)
+	imageURL := product["cover_image"].(string)
+	topic := product["topic_name"].(string)
+
+	// sampleProducts := []struct {
+	// 	Name         string
+	// 	PriceStore   float64
+	// 	PriceService float64
+	// 	ImageURL     string
+	// }{
+	// 	{"High-Performance Gaming Laptop with RTX Graphics", 10, 20, "https://example.com/images/laptop.jpg"},
+	// 	{"Mechanical RGB Backlit Keyboard for Gaming and Office", 20, 10, "https://example.com/images/keyboard.jpg"},
+	// 	{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 1, 2, "https://example.com/images/mouse.jpg"},
+	// 	{"27-Inch 4K Ultra HD Monitor with HDR Support", 5, 6, "https://example.com/images/monitor.jpg"},
+	// 	{"All-in-One Wireless Color Printer with Scanner", 3, 4, "https://example.com/images/printer.jpg"},
+	// 	{"Latest Generation Smartphone with 5G and Triple Camera", 9, 10, "https://example.com/images/smartphone.jpg"},
+	// 	{"10.1-Inch Android Tablet with Stylus Support", 3, 4, "https://example.com/images/tablet.jpg"},
+	// 	{"Fitness Smartwatch with Heart Rate and GPS Tracker", 15, 20, "https://example.com/images/smartwatch.jpg"},
+	// 	{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 2, 3, "https://example.com/images/headphones.jpg"},
+	// 	{"Portable Bluetooth Speaker with Waterproof Design", 3, 4, "https://example.com/images/speaker.jpg"},
+	// 	{"1080p Full HD Webcam with Built-in Microphone", 50, 60, "https://example.com/images/webcam.jpg"},
+	// 	{"1TB USB 3.0 External Hard Drive for Backup and Storage", 1, 1, "https://example.com/images/hdd.jpg"},
+	// 	{"64GB USB Flash Drive with High-Speed File Transfer", 2, 2, "https://example.com/images/usb.jpg"},
+	// 	{"Ergonomic Gaming Chair with Adjustable Armrests", 3, 4, "https://example.com/images/gaming-chair.jpg"},
+	// 	{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 7, 7, "https://example.com/images/gpu.jpg"},
+	// 	{"ATX Motherboard for Intel Processors with WiFi Support", 2, 2, "https://example.com/images/motherboard.jpg"},
+	// 	{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 7, 4, "https://example.com/images/ram.jpg"},
+	// 	{"750W Modular Power Supply with 80+ Gold Certification", 12, 9, "https://example.com/images/psu.jpg"},
+	// 	{"Adjustable LED Desk Lamp with USB Charging Port", 3, 9, "https://example.com/images/desk-lamp.jpg"},
+	// 	{"Dual-Band Wireless Router with Parental Controls", 10, 9, "https://example.com/images/router.jpg"},
 	// }
 
-	// product := productRes["data"].(map[string]interface{})
+	// now := time.Now()
+	// // Tạo seed cho random
+	// rand.Seed(now.UnixNano())
 
-	// name := product["product_name"].(string)
-	// priceStore := product["price_store"].(float64)
-	// priceService := product["price_service"].(float64)
-	// imageURL := product["cover_image"].(string)
-	// topic := product["topic_name"].(string)
-
-	sampleProducts := []struct {
-		Name         string
-		PriceStore   float64
-		PriceService float64
-		ImageURL     string
-	}{
-		{"High-Performance Gaming Laptop with RTX Graphics", 10, 20, "https://example.com/images/laptop.jpg"},
-		{"Mechanical RGB Backlit Keyboard for Gaming and Office", 20, 10, "https://example.com/images/keyboard.jpg"},
-		{"Ergonomic Wireless Mouse with Adjustable DPI Settings", 1, 2, "https://example.com/images/mouse.jpg"},
-		{"27-Inch 4K Ultra HD Monitor with HDR Support", 5, 6, "https://example.com/images/monitor.jpg"},
-		{"All-in-One Wireless Color Printer with Scanner", 3, 4, "https://example.com/images/printer.jpg"},
-		{"Latest Generation Smartphone with 5G and Triple Camera", 9, 10, "https://example.com/images/smartphone.jpg"},
-		{"10.1-Inch Android Tablet with Stylus Support", 3, 4, "https://example.com/images/tablet.jpg"},
-		{"Fitness Smartwatch with Heart Rate and GPS Tracker", 15, 20, "https://example.com/images/smartwatch.jpg"},
-		{"Noise-Cancelling Over-Ear Headphones with Deep Bass", 2, 3, "https://example.com/images/headphones.jpg"},
-		{"Portable Bluetooth Speaker with Waterproof Design", 3, 4, "https://example.com/images/speaker.jpg"},
-		{"1080p Full HD Webcam with Built-in Microphone", 50, 60, "https://example.com/images/webcam.jpg"},
-		{"1TB USB 3.0 External Hard Drive for Backup and Storage", 1, 1, "https://example.com/images/hdd.jpg"},
-		{"64GB USB Flash Drive with High-Speed File Transfer", 2, 2, "https://example.com/images/usb.jpg"},
-		{"Ergonomic Gaming Chair with Adjustable Armrests", 3, 4, "https://example.com/images/gaming-chair.jpg"},
-		{"NVIDIA RTX 4070 Graphics Card with 12GB GDDR6 Memory", 7, 7, "https://example.com/images/gpu.jpg"},
-		{"ATX Motherboard for Intel Processors with WiFi Support", 2, 2, "https://example.com/images/motherboard.jpg"},
-		{"16GB DDR4 RAM Kit (2x8GB) for Desktop Computers", 7, 4, "https://example.com/images/ram.jpg"},
-		{"750W Modular Power Supply with 80+ Gold Certification", 12, 9, "https://example.com/images/psu.jpg"},
-		{"Adjustable LED Desk Lamp with USB Charging Port", 3, 9, "https://example.com/images/desk-lamp.jpg"},
-		{"Dual-Band Wireless Router with Parental Controls", 10, 9, "https://example.com/images/router.jpg"},
-	}
-
-	now := time.Now()
-	// Tạo seed cho random
-	rand.Seed(now.UnixNano())
-
-	// Lấy ngẫu nhiên 1 sản phẩm
-	randomIndex := rand.Intn(len(sampleProducts))
-	selected := sampleProducts[randomIndex]
-
-	cartItem := &models.CartItem{
-		ProductID:   productID,
-		Quantity:    req.Quantity,
-		ProductName: selected.Name,
-		// TopicName:   topic,
-		PriceService: selected.PriceService,
-		PriceStore:   selected.PriceStore,
-		ImageURL:     selected.ImageURL,
-	}
+	// // Lấy ngẫu nhiên 1 sản phẩm
+	// randomIndex := rand.Intn(len(sampleProducts))
+	// selected := sampleProducts[randomIndex]
 
 	// cartItem := &models.CartItem{
-	// 	ProductID:    productID,
-	// 	Quantity:     req.Quantity,
-	// 	ProductName:  name,
-	// 	TopicName:    topic,
-	// 	PriceStore:   priceStore,
-	// 	PriceService: priceService,
-	// 	ImageURL:     imageURL,
+	// 	ProductID:   productID,
+	// 	Quantity:    req.Quantity,
+	// 	ProductName: selected.Name,
+	// 	// TopicName:   topic,
+	// 	PriceService: selected.PriceService,
+	// 	PriceStore:   selected.PriceStore,
+	// 	ImageURL:     selected.ImageURL,
 	// }
+
+	cartItem := &models.CartItem{
+		ProductID:    productID,
+		Quantity:     req.Quantity,
+		ProductName:  name,
+		TopicName:    topic,
+		PriceStore:   priceStore,
+		PriceService: priceService,
+		ImageURL:     imageURL,
+	}
 
 	if err = s.repoCart.AddItemToCart(ctx, req.TeacherID, req.StudentID, *cartItem); err != nil {
 		return nil, err
@@ -283,9 +281,9 @@ func (s *cartService) CheckOutCart(ctx context.Context, req *models.CheckOutCart
 		}
 	}
 
-	// if err := s.ClearCart(ctx, req.TeacherID); err != nil {
-	// 	return fmt.Errorf("order created, but failed to clear cart: %v", err)
-	// }
+	if err := s.ClearCart(ctx, req.TeacherID); err != nil {
+		return fmt.Errorf("order created, but failed to clear cart: %v", err)
+	}
 
 	return nil
 }
