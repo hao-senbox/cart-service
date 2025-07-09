@@ -25,7 +25,7 @@ type CheckOutCartRequest struct {
 }
 
 type UpdateCartItemRequest struct {
-	Quantity  int    `json:"quantity" validate:"required,min=1"`
+	Quantity  *int   `json:"quantity" validate:"required,min=1"`
 	Type      string `json:"types" validate:"required,oneof=increase decrease"`
 	TeacherID string `json:"teacher_id" validate:"required"`
 	StudentID string `json:"student_id" validate:"required"`

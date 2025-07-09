@@ -160,7 +160,7 @@ func (h *CartHandlers) UpdateQuantity(c *gin.Context) {
 		return
 	}
 
-	if req.Type == "" && req.Quantity <= 0 {
+	if req.Type == "" && *req.Quantity <= 0 {
 		SendError(c, http.StatusBadRequest, fmt.Errorf("quantity must be greater than 0 when type is not specified"), models.ErrInvalidRequest)
 		return
 	}
